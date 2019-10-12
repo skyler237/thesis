@@ -1,0 +1,87 @@
+% !TEX root=../master.tex
+\chapter{Handoff Logic}
+\label{ch:handoff_logic}
+
+Once the handoff vehicle is tracking moving objects visually, it must decide which object correlates with the target being tracked by the tracking UAV.
+Given a series of observations over time, the handoff UAV should continue tracking the object that is most likely to correspond with the correct target. In order to estimate the correlation between two tracks, the handoff UAV must first align the tracks. For tracks that have a low residual after alignment, the UAV can compare the resulting transformation with the estimated relative pose to see if the two estimates coincide. If a track boths aligns well with the information from the tracking UAV and also coincides with the relative pose estimate, it is considered a good match. This section discusses the method used for track alignment and also the logic used to determine if the a track is a sufficiently good match to complete the handoff.
+
+%  select tracks with low residual after alignment as candidates, and compare the aligment results with the relative pose estimate to see if the two estimates coincide.
+% When the handoff UAV finds a track that aligns well with the track from the tracking UAV and also coincides with the relative pose estimate, the handoff UAV can make an informed decision about which object to track persistently. This section discusses the track aligment and the logic used to decide when to officially complete the handoff.
+
+\section{Track Alignment}
+Let $\x_k$ represent the tracking UAV's measurement of targets position at the $k$ -th time step and let $\y_{k}$ represent the handoff UAV's measurement of the target at the $k$-th time step. Each measurement is given in the respetive UAV's vehicle-1 frame. We will also define $X$ and $Y$ to be $3 \times n$ matrices, composed of measurements received at the past $n$ timesteps. If we assume that all points in $X$ and $Y$ are in the ground plane, zeroing out the $z$-component, the two sets of measurements will have have a rotational and a translational offset from one another.
+
+We can account for the translation between the two by simply shifting the centroid of each set of measurements to the origin, such that
+\begin{equation}
+    \bar{X} = X - \frac{1}{n}\sum\limits_{i=1}^{n} \x_i\;,
+\end{equation}
+and where $\bar{Y}$ is obtained by a similar operation.
+
+Without noise, the relationship between $\bar{X}$ and $\bar{Y}$ would be given by
+\begin{equation}
+    \bar{Y} = \Rot{\tv}{\hv}\bar{X}\;.
+\end{equation}
+In the prescence of noise, this equation will not perfectly hold, but we can still estimate the appropriate value for $\Rot{\tv}{\hv}$ by finding the rotation, $R$, such that error is minimized, according to
+\begin{equation} \label{eq:Rhat_procrustes}
+    \Rothat{\tv}{\hv} = \arg\min\limits_{R}\hspace{0.5em} \norm{R\bar{X} - \bar{Y}}_F\;,
+\end{equation}
+where $\norm{\cdot}_F$ represents the Frobenius norm.
+
+The solution to Equation~\eqref{eq:Rhat_procrustes} can be found in closed form using singular value decomposition (SVD), according to the result from the orthogonal Procrustes problem \cite{Schonemann1966}.
+In our case, we constrain the problem to only include rotation matrices ($\det(R) = 1$), which corresponds with the Kabsch algorithm \cite{Kabsch78}.
+
+First, we compute the cross covariance between $\bar{X}$ and $\bar{Y}$, given by
+\begin{equation}
+    M = \bar{Y}\bar{X}^\transpose\;.
+\end{equation}
+Using SVD, $M$ can be decomposed as
+\begin{equation}
+    M = U\Sigma V^\transpose\;.
+\end{equation}
+The optimal rotation is given by
+\begin{equation} \label{eq:Rhat_svd}
+    \Rothat{\tv}{\hv} = U\Sigma' V^\transpose\;,
+\end{equation}
+where $\Sigma'$ is given by
+\begin{equation}
+    \Sigma' = \pmat{1 & 0 & 0 \\
+                    0 & d & 0 \\
+                    0 & 0 & 1}\;,
+\end{equation}
+where $d$ is the sign $(\pm 1)$ of $\det(UV^\transpose)$. This ensures that the determinant of $\Rothat{\tv}{\hv}$ will be 1. Note that in the original algorithm, $d$ would appear in the bottom row of $\Sigma'$, but because we assume that all points lie in the $xy$-plane, we allow the third row to remain identity and instead place $d$ in the second row.
+
+After computing the optimal value for $\Rothat{\tv}{\hv}$, we can use the remaining residual from Equation~\eqref{eq:Rhat_procrustes} as a measure of how well the two tracks were able to be aligned. We can choose a threshold for the residual, $T_r$, and say that any track which produce a residual less than the threshold is a potential match with the target.
+
+The result of Equation~\eqref{eq:Rhat_svd} will give us the rotation which minimizes the Frobenius norm of the error between the two sets of points, but it is possible that two similarly shaped tracks could produce a low residual, but not be true matches. In order increase our confidence that an object truly does correspond with the target, we can also compare the result of the procrustes analysis with the relative pose estimate between the two vehicles.
+
+For any object which has a residual below the threshold, we also compare the computed rotation, $\Rothat{\tv}{\hv}$, with the rotation estimated by the relative pose estimator, which we will denote as $\Rot[\tilde]{\tv}{\hv}$. We can extract the error between the two rotations according to
+\begin{equation}
+    e_\theta = \cos^{-1} \left(\e_1^\transpose\Rothat{}{}\Rot[\tilde]{}{\transpose}\e_1\right)\;,
+\end{equation}
+where $\e_1$ is given by $\pmat{1 & 0 & 0}^\transpose$.
+
+We can derive an estimate of the relative translation between the two UAVs using the sets of points, $\X$ and $\Y$, which can be compared with the relative line of sight estimate to further verify that the tracks truly match. We estimate the relative line of sight according to
+\begin{align}
+    \p[\hat]_{\TwrtH}^\hv &= \p_{\TwrtTG}^\hv - \p_{\HwrtTG}^\hv \\
+        &= \p_{\TGwrtH}^\hv - \Rot{\tv}{\hv}\p_{\TGwrtT}^\tv
+\end{align}
+where $\Rot{\tv}{\hv}$ is the estimated rotation between the two tracks and $\p_{\TGwrtT}^\tv$ and $\p_{\TGwrtH}^\hv$ represent the most recent measurements in $\X$ and $\Y$ respectively. The translational error is given by
+\begin{equation}
+    e_t =  \norm{ \p[\hat]_{\TwrtH}^\hv -  \p[\tilde]_{\TwrtH}^\hv }
+\end{equation}
+where $\p[\tilde]_{\TwrtH}^\hv$ represents the relative line of sight estimate from the relative pose particle filter.
+
+If both the angle and translation errors between the procrustes result and the relative pose estimate are below their respective thresholds, $T_\theta$ and $T_\t$, then we consider the two tracks a match.
+
+When we complete the handoff, the handoff UAV will switch from using the relative pose esimate for estimating the target's position to using the visual LOS. To avoid a discontinuous jump in the LOS input to the orbit control, we introduce a blending parameter, $\gamma_b$, that evolves according to
+\begin{equation}
+    \gamma_b^+ = \alpha m + (1 - \alpha) \gamma_b\;,
+\end{equation}
+where $\alpha$ is a tunable parameter that determines the blending transition rate and $m$ is a binary value depending on whether or not the tracks match, given by
+\begin{equation}
+    m = \begin{cases} 1, & \norm{\Rot[\hat]{\tv}{\hv}\bar{X} - \bar{Y}}_F < T_r, \mbox{ } e_\theta < T_\theta, \mbox{ and } e_t < T_t\\
+    0, & \mbox{otherwise}
+  \end{cases}\;.
+\end{equation}
+
+The blending parameter, $\gamma_b$, can also help to ensure that the handoff only occurs after the errors remain below the desired thresholds for multiple consecutive timesteps. We say that the handoff is officially complete when $\gamma_b$ rises above a threshold, $T_\gamma$, which we set as $0.95$.

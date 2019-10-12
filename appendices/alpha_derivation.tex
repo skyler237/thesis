@@ -1,0 +1,90 @@
+% !TEX root=../master.tex
+% \appendix{DERIVATIONS} % Do we want this?
+\section{Angle of attack dynamics} \label{append:alpha_derivation}
+From Equation (2.5-19) in \cite{StevensLewis03} we see that the dynamic equation for $\alpha$ is
+\begin{align}
+m \dot{\alpha} v_a \cos\beta = -F_T &\sin(\alpha + \alpha_T) - L + mg_3 \\
+								&+ mv_a(Q\cos\beta - P_s\sin\beta) \nonumber \;
+\end{align}
+By solving for $\dot{\alpha}$ and assuming both $\beta$ and $\alpha_T$ are zero, we can simplify the equation to become
+\begin{equation}
+\dot{\alpha} = \frac{-F_T\sin\alpha - L}{mv_a} + \frac{g_3}{v_a} + Q \;.
+\end{equation}
+Expanding $g_3$ according to Equation (2.5-17) in \cite{StevensLewis03} gives
+\begin{align}
+\dot{\alpha} &= \frac{-F_T\sin\alpha - L}{mv_a} \\
+&\hspace{2em}+ \frac{g(\sin\alpha\sin\theta + \cos\alpha\cos\phi\cos\theta)}{v_a} + Q \nonumber \;.
+\end{align}
+where $v_a$ represents airspeed, $F_T$ represents the thrust force, $L$ represents the lift force, $Q$ is the rate of rotation about the body frame y-axis, $g$ is gravity, and $m$ is the airframe mass.
+
+In order to simplify the equations, we will assume that the angles $\alpha, \theta$, and $\phi$ are small and use linear approximations of the sinusoid functions. This provides a linear form of the dynamics given by
+\begin{align}
+\dot{\alpha} &= \frac{-F_T\alpha - L}{mv_a} + \frac{g\cos(\theta - \alpha)}{v_a} + Q \\
+			 &= \frac{-F_T\alpha - L}{mv_a} + \frac{g}{v_a} + Q \;.
+\end{align}
+We can expand both $F_T$ and $L$ by using the approximations
+\begin{equation}
+F_T \approx k_{motor}\delta_t^2 - k_T v_a^2 \;
+\end{equation}
+and
+\begin{equation}
+L \approx k_L v_a^2
+\end{equation}
+from \cite{BeardMcLain12},
+where $k_{motor}$, $k_T$, and $k_L$ are constants and $\delta_t$ is the throttle control effort.
+The resulting dynamic equation is
+\begin{equation}
+\dot{\alpha} = \frac{-(k_{motor}\delta_t^2 - k_T v_a^2)\alpha - k_L v_a^2}{mv_a} + \frac{g}{v_a} + Q \;.
+\end{equation}
+Rearranging the terms gives us
+\begin{equation} \label{eq:alphadot_rederivation}
+\dot{\alpha} = \frac{-(k_{motor}\delta_t^2 - k_T v_a^2)}{mv_a}\alpha + Q - k_L v_a + \frac{g}{v_a} \;.
+\end{equation}
+Comparing to the linearized dynamic equation used in \cite{Mahony11}, written as
+\begin{equation} \label{eq:alphadot_mahony}
+\dot{\alpha} = -\frac{c_0}{v_a}\alpha + \dot{\theta} + \alpha_0 \;,
+\end{equation}
+the form is very similar, differing only in that the dynamic equation in \eqref{eq:alphadot_rederivation} replaces the constants $c_0$ and $\alpha_0$ with functions of $v_a$.
+
+Accordingly, defining
+\begin{equation} \label{eq:c0_Va_append}
+c_0(v_a) = \frac{k_\delta - k_T v_a^2}{m}
+\end{equation}
+and
+\begin{equation}
+\alpha_0(v_a) = \frac{g}{v_a} - \frac{k_L}{m}v_a \;,
+\end{equation}
+we can rewrite \eqref{eq:alphadot_rederivation} in the form of \eqref{eq:alphadot_mahony} as
+\begin{equation} \label{eq:alphadot_final}
+\dot{\alpha} = -\frac{c_0(v_a)}{v_a}\alpha + \dot{\theta} + \alpha_0(v_a) \;.
+\end{equation}
+Note that in \eqref{eq:c0_Va_append} we assume that we don't have knowledge of the value of $\delta_t$ and accordingly replaced $k_{motor}\delta_t^2$ with a constant $k_\delta$.
+
+For flights where the airspeed is held near constant, there is little performance advantage of using one dynamic derivation over the other, but the dynamic equation given in \eqref{eq:alphadot_final} does track the angle of attack better over varying airspeeds.
+
+\subsection{Error State Dynamics}
+\label{append:error_dyn_derivation}
+Because we define the gyro bias dynamics in \eqref{eq:gbias_dynamics} to be zero, the error state dynamics will simply be represented by the state estimate noise, $\noise_{\gbias}$, giving us
+\begin{equation*}
+  \dgbias[\dot] = \noise_{\gbias} \;.
+\end{equation*}
+
+For the angle of attack, we will follow Equation \eqref{eq:dxdot_error} to arrive at the error state dynamics. Expanding all terms required to compute $\bar{\f}$, we get
+\begin{align}
+  \dot{\dalpha} &= -\frac{c_0(v_a)}{v_a}\alpha + \dot{\theta} + \alpha_0(v_a) \\
+    &= \bigg(\frac{-(k_\delta - k_T (v_a + \noiseu_{v_a})^2)}{m(v_a + \noiseu_{v_a})}(\hat{\alpha} + \dalpha) \nonumber \\
+    &\hspace{2em}+ (\angvel[\tilde] - \gbias[\hat] - \dgbias - \noiseu_{\angvel})\cdot\vect{e}_2 \nonumber \\
+    &\hspace{2em}- k_L (v_a + \noiseu_{v_a}) + \frac{g}{(v_a + \noiseu_{v_a})}\bigg) \\
+    &\hspace{1em}- \bigg(\frac{-(k_\delta - k_T v_a^2)}{mv_a}\hat{\alpha} + (\angvel[\tilde] - \gbias[\hat])\cdot\vect{e}_2 \nonumber \\
+    &\hspace{2em}- k_L v_a + \frac{g}{v_a }\bigg) \nonumber \;.
+\end{align}
+Assuming $\noiseu_{v_a} \ll v_a$, we can simplify the equation to
+\begin{align}
+  \dot{\dalpha} &= \bigg(\frac{-(k_\delta - k_T v_a^2)}{mv_a}(\hat{\alpha} + \dalpha) \\
+    &\hspace{2em}+ (\angvel[\tilde] - \gbias[\hat] - \dgbias - \noiseu_{\angvel})\cdot\vect{e}_2 \\
+    &\hspace{2em}- k_L v_a + \frac{g}{v_a}\bigg) \\
+    &\hspace{1em}- \bigg(\frac{-(k_\delta - k_T v_a^2)}{mv_a}\hat{\alpha} + (\angvel[\tilde] - \gbias[\hat])\cdot\vect{e}_2 \\
+    &\hspace{2em}- k_L v_a + \frac{g}{v_a }\bigg) \\
+    &= \frac{-(k_\delta - k_T v_a^2)}{mv_a}\dalpha - (\dgbias + \noiseu_{\angvel})\cdot\vect{e}_2 \;,
+\end{align}
+giving us the dynamic equation for the angle of attack error state.

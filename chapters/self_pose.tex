@@ -1,0 +1,228 @@
+% !TEX root=../master.tex
+\chapter{GPS-Denied Self-Pose Estimation}
+\label{ch:self_pose}
+
+A fundamental component of performing a target handoff without GPS is accurate estimation of the self-pose of each vehicle.
+Without GPS, there is no global frame of reference that is common between the two vehicles. 
+Accordingly, all information shared about the target must be coordinated using relative transformations. 
+These relative transformations depend heavily upon each vehicle's estimate of its self-pose as well. 
+Small errors in self-pose estimates are amplified by long distances and can lead to large errors in the estimated relative transformation between the two vehicles. 
+This chapter will discuss methods for estimating the self-pose, followed by a discussion of estimating the relative-pose in Chapter~\ref{ch:relative_pose}. 
+Both chapters are focused on estimation for fixed wing UAV in GPS-denied environments.
+
+\section{Background}
+There has been extensive work done on estimating the attitude of a fixed-wing aircraft both using non-linear~\cite{Mahony11} and linear~\cite{LiuZhouFu08} methods.
+For this work we estimate the attitude state of the filter using a complimentary filter on SO(3), based upon the work done in \cite{Mahony11}. 
+While the filter approach and algorithm remain the same, we do make a slight extension to the filter presented by Mahony et al. to better account for variability in the magnitude of the airspeed. The details of the filter, as well as our extension, will be discussed below.
+
+
+% Two of these methods are discussed and compared here in an effort to identify which method provides the most accurate results for GPS-free fixed-wing estimation. In addition to making comparisons between existing filters, some improvements are proposed which extend previous work. First, a multiplicative extended Kalman filter (MEKF) for fixed-wing attitude estimation will be discussed, followed by an explanation of a non-linear complimentary filter which extend the work done in \cite{Mahony11}.
+% \input{chapters/deprecated/mekf}
+
+\section{Non-linear Complimentary Filter on SO(3)}
+
+%There are many existing methods for estimating the attitude of a fixed-wing aircraft. Accordingly, this section will focus
+
+The filter implementation described here is based primarily on the work done in \cite{Mahony11}, but with some small improvements. The main extension to the work done by Mahony et al. includes an improved velocity-dependent model for the angle-of-attack which is used in the calculation of the body frame velocities. We will give a brief description of the filter implementation, highlighting the improvements made in this work.
+
+% Give overview of Mahony filter
+%% TODO: Give overview of Mahony Filter 
+% Rough draft: 
+\subsection{Complimentary filter overview}
+Using the inertial downward gravity vector as a reference, the complimentary filter attempts to estimate the vehicle's attitude such that the estimated gravity direction, $\vhat$, aligns well with the measured gravity direction, $\vbar$. 
+The estimated gravity direction, $\vhat$, is a function of the estimated attitude quaternion state, $\q[\hat]$, according to
+\begin{equation}
+	\vhat =
+  \begin{bmatrix}
+    2(\hat{q}_1\hat{q}_3 - \hat{q}_0\hat{q}_2) \\
+    2(\hat{q}_2\hat{q}_3 + \hat{q}_0\hat{q}_1) \\
+    \hat{q}_0^2 - \hat{q}_1^2 - \hat{q}_2^2 + \hat{q}_3^2
+  \end{bmatrix}
+\end{equation}
+where the quaternion is defined according to the Hamiltonian convention, with
+\begin{equation}
+	\q = \pmat{q_0 \\ q_1 \\ q_2 \\ q_3},
+\end{equation}
+and where $q_0$ is the scalar portion of the quaternion.
+
+The measured gravity direction, $\vbar$, is derived from the accelerometer measurement, using gyro and airspeed measurements to compensate for the non-inertial acceleration caused by the vehicle's motion.
+Let $\f$ represent the total force on the vehicle in the body frame, as measured by the accelerometers, and let $\accel$ represent the portion of the acceleration of the caused by the vehicle's motion. 
+The force due to gravity would then be given by
+\begin{equation}
+	\g = -(\f - \accel) \;,
+\end{equation}
+and $\vbar$ is obtained by normalizing $\g$ according to
+\begin{equation}
+	\vbar = \frac{\g}{\norm{\g}} \;.
+\end{equation}
+
+The attitude error, $\e$, is computed according to
+\begin{equation}
+	\e = \vbar \times \vhat \;,
+\end{equation}
+and the filter innovation, $\dth$, is defined as
+\begin{equation}
+	\dth = k_p \e + k_i \int \e \;,
+\end{equation} 
+where the integral portion is also used to estimate the gyro bias according to
+\begin{equation}
+	\mathbf{b}_g = - k_i \int \e \;.
+\end{equation}
+
+The attitude estimate is then updated according to
+\begin{equation}
+	\dot{\q[\hat]} = \frac{1}{2}\q[\hat] \otimes \mathbf{p}\left(\angvel + \dth \right) \;,
+\end{equation}
+where $\otimes$ represents Hamiltonian quaternion multiplication, $\angvel$ is the measured angular velocities, and $\mathbf{p}(\cdot)$ represents the pure quaternion operator, defined as
+\begin{equation}
+	\mathbf{p}(\mathbf{a}) = \pmat{0 \\ a_1 \\ a_2 \\ a_3} \;.
+\end{equation}
+
+Our main contribution to this work is in improving the estimate of the acceleration due to the vehicle's motion, $\accel[\hat]$. In order to compensate for the motion of the vehicle, Mahony et al. uses a first-order model of the angle of attack and the airspeed to estimate the vehicle's body frame velocity vector according to
+\begin{equation} \label{eq:vair_vec}
+    \hat{\mathbf{V}}_a = \lvert v_a \rvert
+    \begin{pmatrix}
+    \cos\hat{\alpha} \\
+    0 \\
+    \sin\hat{\alpha}
+    \end{pmatrix} \;,
+\end{equation}
+which can then be used to compute the non-inertial acceleration according to
+\begin{equation}
+	\accel[\hat] = \left( \angvel + \mathbf{b}_g \right) \times \hat{\mathbf{V}}_a
+\end{equation}
+
+The first order angle of attack model holds reasonably well for a given airspeed, but must be tuned specifically for that airspeed and doesn't track the true value as well when the vehicle is moving much faster or slower. We made some slight modifications to the angle of attack model to allow the estimator to better track variations in the airspeed without compromising the simplicity of the filter.
+These modifications are explained in the section below.
+
+% Highlight alpha dynamics changes
+\subsection{Velocity-dependent angle of attack model} \label{sec:alpha_derivation}
+From Equation (2.5-19) in \cite{StevensLewis03} the dynamic equation for the angle of attack, $\alpha$, is
+\begin{align}
+m \dot{\alpha} v_a \cos\beta = -F_T &\sin(\alpha + \alpha_T) - L + mg_3 + mv_a(Q\cos\beta - P_s\sin\beta) \nonumber \;
+\end{align}
+By solving for $\dot{\alpha}$ and assuming both the sideslip angle, $\beta$, and the thrust vector angle offset, $\alpha_T$, are zero, we can simplify the equation to become
+\begin{equation}
+\dot{\alpha} = \frac{-F_T\sin\alpha - L}{mv_a} + \frac{g_3}{v_a} + Q \;.
+\end{equation}
+Expanding $g_3$ according to Equation (2.5-17) in \cite{StevensLewis03} gives
+\begin{align}
+\dot{\alpha} &= \frac{-F_T\sin\alpha - L}{mv_a} + \frac{g(\sin\alpha\sin\theta + \cos\alpha\cos\phi\cos\theta)}{v_a} + Q \nonumber \;.
+\end{align}
+where $v_a$ represents airspeed, $F_T$ represents the thrust force, $L$ represents the lift force, $Q$ is the rate of rotation about the body frame y-axis, $g$ is gravity, and $m$ is the airframe mass.
+
+To simplify the equations, we will assume that the angles $\alpha, \theta$, and $\phi$ are small and use linear approximations of the sine and cosine functions.
+This provides a simplified form of the dynamics given by
+\begin{align}
+\dot{\alpha} &= \frac{-F_T\alpha - L}{mv_a} + \frac{g\cos(\theta - \alpha)}{v_a} + Q \\
+			 &= \frac{-F_T\alpha - L}{mv_a} + \frac{g}{v_a} + Q \;.
+\end{align}
+We can expand both $F_T$ and $L$ by using the approximations
+\begin{equation}
+F_T \approx k_{motor}\delta_t^2 - k_T v_a^2 \;
+\end{equation}
+and
+\begin{equation}
+L \approx k_L v_a^2
+\end{equation}
+from \cite{BeardMcLain12},
+where $k_{motor}$, $k_T$, and $k_L$ are constants and $\delta_t$ is the throttle control effort.
+The resulting dynamic equation is
+\begin{equation}
+\dot{\alpha} = \frac{-(k_{motor}\delta_t^2 - k_T v_a^2)\alpha - k_L v_a^2}{mv_a} + \frac{g}{v_a} + Q \;.
+\end{equation}
+Rearranging the terms gives us
+\begin{equation} \label{eq:alphadot_rederivation}
+\dot{\alpha} = \frac{-(k_{motor}\delta_t^2 - k_T v_a^2)}{mv_a}\alpha + Q - \frac{k_L}{m} v_a + \frac{g}{v_a} \;.
+\end{equation}
+Comparing to the linearized dynamic equation used in \cite{Mahony11}, written as
+\begin{equation} \label{eq:alphadot_mahony}
+\dot{\alpha} = -\frac{c_0}{v_a}\alpha + \dot{\theta} + \alpha_0 \;,
+\end{equation}
+the form is very similar, differing only in that the dynamic equation in \eqref{eq:alphadot_rederivation} replaces the constants $c_0$ and $\alpha_0$ with functions of $v_a$.
+
+Accordingly, defining
+\begin{equation} \label{eq:c0_Va}
+c_0(v_a) = \frac{k_\delta - k_T v_a^2}{m}
+\end{equation}
+and
+\begin{equation}
+\alpha_0(v_a) = \frac{g}{v_a} - \frac{k_L}{m}v_a \;,
+\end{equation}
+we can rewrite \eqref{eq:alphadot_rederivation} in the form of \eqref{eq:alphadot_mahony} as
+\begin{equation} \label{eq:alphadot_final}
+\dot{\alpha} = -\frac{c_0(v_a)}{v_a}\alpha + \dot{\theta} + \alpha_0(v_a) \;.
+\end{equation}
+Note that in \eqref{eq:c0_Va} we assume that we don't have knowledge of the value of $\delta_t$ and accordingly replaced $k_{motor}\delta_t^2$ with a constant $k_\delta$.
+
+In the complementary filter, the angle of attack is used to estimate the body frame airspeed vector according to \eqref{eq:vair_vec}.
+Accordingly, a more accurate estimate of the angle of attack allows the filter to produce a better velocity estimate, which improves the attitude estimate as well. 
+
+For flights where the airspeed is held near constant, there is little performance advantage of using one dynamic derivation over the other, but the dynamic equation given in \eqref{eq:alphadot_final} does track the angle of attack better over varying airspeeds, especially during takeoff and landing.
+%
+% \subsection{Body-frame Velocity Improvements}
+% In~\cite{Mahony11}, the body frame airspeed vector is computed according to
+% \begin{equation} \label{eq:vair_mahony}
+%     v_a = \lvert v_a \rvert
+%     \begin{pmatrix}
+%     \cos\alpha \\
+%     0\\
+%     \sin\alpha
+%     \end{pmatrix}\;,
+% \end{equation}
+% but this formulation does not take into account the current roll of the vehicle. Mahony et al. uses this as an approximation, but experimentally, accounting for roll made a noticeable difference in performance. The airspeed vector approximation in \eqref{eq:vair_mahony} represents the airspeed vector given in the vehicle-2 frame \stcomment{include citation or reference for V2 frame?}, so if we want the airspeed vector in the body frame, we must apply a rotation given by
+% \begin{equation} \label{eq:vair_rot}
+%     v_a^b = \Rot{\text{v2}}{b} v_a^{\text{v2}}\;,
+% \end{equation}
+% where $\Rot{\text{v2}}{b}$ is defined as the rotation from the vehicle-2 frame to the body frame, according to
+% \begin{equation}
+%     \Rot{\text{v2}}{b} =
+%     \begin{pmatrix}
+%         1 & 0 & 0 \\
+%         0 & \cos\phi & \sin\phi \\
+%         0 & -\sin\phi & \cos\phi
+%     \end{pmatrix}\;.
+% \end{equation}
+% Combining \eqref{eq:vair_mahony} and \eqref{eq:vair_rot}, we get
+% \begin{equation} \label{eq:vair_vec}
+%     v_a = \lvert v_a \rvert
+%     \begin{pmatrix}
+%     \cos\alpha \\
+%     \sin\alpha\sin\phi\\
+%     \sin\alpha\cos\phi
+%     \end{pmatrix}\;.
+% \end{equation}
+
+\section{Results}
+We obtained experimental results by running the filter on a BAT-4 fixed-wing UAV. We commanded the UAV to loiter a moving target on the ground and used IMU, and airspeed data to estimate the attitude of the vehicle. We use an on-board GPS-INS unit as our best estimate of the true attitude.
+
+The results shown in Figures~\ref{fig:roll_plot}~and~\ref{fig:pitch_plot} include a two-minute window of data from the flight test. The altitude of the vehicle remained nearly constant, but the roll angle of the vehicle ranged from about -10 to 10 degrees, which is fairly representative of the type of trajectories required to complete the target handoff. The results are summarized in Table~\ref{tab:attitude_results}.
+
+\begin{figure}[hbt]
+	\centering
+	\includegraphics[width=\columnwidth]{figures/hardware_roll_plot}
+	\caption{Plot of roll estimate during a hardware flight test.}
+	\label{fig:roll_plot}
+\end{figure}
+
+\begin{figure}[hbt]
+	\centering
+	\includegraphics[width=\columnwidth]{figures/hardware_pitch_plot}
+	\caption{Plot of pitch estimate during a hardware flight test.}
+	\label{fig:pitch_plot}
+\end{figure}
+
+\begin{table}[hbt]
+  \caption{Self-pose attitude estimation results}
+	\label{tab:attitude_results}
+	\resizebox{\columnwidth}{!}{%
+	\begin{tabular}{c|l|l|}
+	\cline{2-3}
+	\multicolumn{1}{l|}{}                                                  & \multicolumn{1}{c|}{Roll} & \multicolumn{1}{c|}{Pitch} \\ \hline
+	\multicolumn{1}{|c|}{Mean Squared Error (deg)} & 3.067                                             & 1.476                                              \\ \hline
+	\multicolumn{1}{|c|}{Average Error (deg)}      & 1.277                                            & -0.655                                              \\ \hline
+	\end{tabular}
+	}
+\end{table}
+
+% Results and comparisons!

@@ -1,0 +1,58 @@
+% !TEX root=master.tex
+%\chapter*{Nomenclature}
+%
+%\thispagestyle{plain}
+%\pagenumbering{roman}
+%\setcounter{page}{15}
+%
+%\addcontentsline{toc}{chapter}{Nomenclature}
+%\label{ch:Nomenclature}
+%
+%
+
+%\begin{nomenclature}
+\begin{tabbing}
+12345678 \= \kill
+\textbf{Coordinate frames}\\
+\\[5pt]
+$\mathcal{F}^{\tg}$ 		\> Coordinate frame associated with the target  \\
+$\mathcal{F}^{\tracking}$ 	\> Body frame associated with the tracking UAV  \\
+$\mathcal{F}^{\handoff}$ 	\> Body frame associated with the handoff UAV   \\
+$\mathcal{F}^{\tn}$ 		\> Local-level frame (unrolled and unpitched body frame) of the tracking UAV \\
+$\mathcal{F}^{\hn}$ 		\> Local-level frame (unrolled and unpitched body frame) of the handoff UAV \\
+$\mathcal{F}^{g}$ 			\> Coordinate frame associated with the handoff UAV's gimbal  \\
+$\mathcal{F}^{c}$ 			\> Coordinate frame associated with the handoff UAV's camera \\
+
+$\mathbf{p}_{a/b}^c$ \> The position of frame $\mathcal{F}^a$ with respect to frame $\mathcal{F}^b$ as expressed in frame $\mathcal{F}^c$ \\
+$R_a^b$ \> Rotation matrix that transforms coordinates in frame $\mathcal{F}^a$ to coordinates in frame $\mathcal{F}^b$.
+
+\\[5pt]
+\textbf{State variables}\\
+\\[5pt]
+$\p$ 	   \> Position vector (m) \\
+$\vel$	   \> Velocity vector (m/s) \\
+$\phi$     \> Roll angle, the rotation of the vehicle about the $x$-axis (rad) \\
+$\theta$   \> Pitch angle, the rotation of the vehicle about the $y$-axis (rad) \\
+$\psi$     \> Yaw angle, the rotation of the vehicle about the $z$-axis (rad) \\
+		   \> \textit{*Note that Euler angles are compounded in the order of yaw, pitch, then roll} \\
+$\angvel$  \> Angular velocity vector (rad/s) \\
+$\alpha$   \> Angle of attack (rad) \\
+$v_a$	   \> Airspeed (m/s) \\
+% $\los$     \> Line of sight vector from the handoff vehicle to the tracking vehicle \\
+% $\losxy$   \> Projection of $\los$ onto the inertial $xy$-plane \\
+$\bearing$ \> Bearing angle of $\losxy$ as measured from the body frame $x$ axis (rad) \\
+$\range$   \> L2 distance of $\losxy$ \\
+
+\\[5pt]
+\textbf{Other Notation} \\
+\\[5pt]
+$x$				\> Scalar \\
+$\x$			\> Vector \\
+$\A$			\> Matrix \\
+$\x[\hat]$  	\> Estimated value of $\x$ \\
+% $\x[\tilde]$	\> Measured value of $\x$ \\
+$\x[\check]$ 	\> Normalized value of $\x$ \\
+$\xdot$ 		\> Time derivative of $\x$ \\
+$\skewmat{\x}$  \> Skew-symmetric matrix constructed from the vector, $\x$ \\
+
+\end{tabbing} 

@@ -1,0 +1,531 @@
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{amsbsy}
+% \usepackage{amsfonts}
+% \usepackage{bm}
+
+% General commands
+\usepackage{color}
+\newcommand{\stcomment}[1]{{\color{blue}[ST: #1]}}
+
+% Building blocks
+\newcommand*{\vect}[1]{\mathbf{#1}}
+\newcommand*{\mat}[1]{\mathbf{#1}}	
+
+\newcommand*{\modvar}[2][]{\ensuremath{#1{#2}}}
+\newcommand*{\modvect}[2][]{\ensuremath{\modvar[#1]{\vect{#2}}}}
+\newcommand*{\modmat}[2][]{\ensuremath{\modvar[#1]{\mat{#2}}}}
+
+% my Commands
+\newcommand*{\By}{\times}
+\newcommand*{\Rot}[3][]{\modvar[#1]{\mathcal{R}}_{#2}^{#3}}
+\newcommand*{\Rotdot}[2]{\Rot[\dot]{#1}{#2}}
+\newcommand*{\Rothat}[2]{\Rot[\hat]{#1}{#2}}
+\newcommand*{\atantwo}{\text{atan2}}
+\newcommand*{\degree}{\circ}
+\newcommand*{\approaches}{\rightarrow}
+\newcommand*{\given}{\vert}
+
+\global\long\def\atan{\tan^{-1}}
+\global\long\def\acos{\cos^{-1}}
+\global\long\def\norm#1{\lVert#1\rVert}
+\global\long\def\sat#1#2#3{\text{sat}\left(#1,#2,#3\right)}
+\global\long\def\grad#1{\triangledown#1}
+\global\long\def\Vt{\mathbf{V_{t}}}
+\global\long\def\Vw{\mathbf{V_{w}}}
+\global\long\def\Vg{\mathbf{V_{g}}}
+\global\long\def\Va{\mathbf{V_{a}}}
+\global\long\def\el{\alpha_\text{el}}
+\global\long\def\eldot{\dot{\el}}
+\global\long\def\az{\alpha_\text{az}}
+\global\long\def\azdot{\dot{\az}}
+\global\long\def\xdot{\dot{\x}}
+\global\long\def\vxtb{v_{x_{t}}^{b}}
+\global\long\def\vxtw{v_{x_{t}}^{w}}
+\global\long\def\vytw{v_{y_{t}}^{w}}
+\global\long\def\vytb{v_{y_{t}}^{b}}
+\global\long\def\e{\mathbf{e}}
+\global\long\def\edot{\dot{\e}}
+\global\long\def\u{\mathbf{u}}
+
+
+% \renewcommand*{\sin}{\text{sin\:}}
+% \renewcommand*{\cos}{\text{cos\:}}
+\newcommand*{\asin}{\sin^{-1}}
+\DeclareMathOperator{\sinc}{sinc}
+
+\newcommand*{\of}[1]{\ensuremath{(#1)}}
+\newcommand*{\inverseof}[1]{\ensuremath{\of{#1}\inverse}}
+
+\newcommand*{\at}[2]{\ensuremath{\left. {#1} \right\vert_{#2}}}
+
+\newcommand*{\half}{\ensuremath{\frac{1}{2}}}
+
+% modifiers
+\newcommand*{\hatdot}[1]{\ensuremath{\dot{\hat{#1}}}}
+\newcommand*{\dothat}[1]{\ensuremath{\hat{\dot{#1}}}}
+\newcommand*{\inverse}{\ensuremath{{}^{-1}}}
+
+% operators
+\newcommand*{\transpose}{\ensuremath{\mathsf{T}}}
+\newcommand*{\skewmat}[1]{\left\lfloor#1\right\rfloor}
+\newcommand*{\dd}[2][]{\frac{d{#1}}{d{#2}}}
+\newcommand*{\pardd}[2][]{\frac{\partial{#1}}{\partial{#2}}}
+\newcommand*{\cross}{\times}
+
+% frame definitions
+\newcommand*{\handoff}{h}
+\newcommand*{\tracking}{r}
+\newcommand*{\target}{t}
+\newcommand*{\inertial}{i}
+\newcommand*{\hv}{{\handoff_\ell}} % Handoff v1
+\newcommand*{\hn}{\hv} % remap v1 to navigation frame
+\newcommand*{\hb}{{\handoff}}
+\newcommand*{\hz}{{\handoff_z}} % represents handoff z-axis
+\newcommand*{\tv}{{\tracking_\ell}} % tracking v1
+\newcommand*{\tn}{\tv} % remap v1 to navigation frame
+\newcommand*{\tb}{{\tracking}}
+\newcommand*{\tz}{{\tracking_z}} % represents tracking z-axis
+\newcommand*{\tg}{\target}
+\newcommand*{\jn}{{j_n}} % arbitrary navigation frame
+\newcommand*{\jb}{{j_b}} % arbitrary body frame
+\newcommand*{\TwrtI}{\tracking/\inertial}
+\newcommand*{\HwrtI}{\handoff/\inertial}
+\newcommand*{\HBwrtI}{\hb/\inertial}
+\newcommand*{\HVwrtI}{\hv/\inertial}
+\newcommand*{\HVwrtHB}{\hv/\hb}
+\newcommand*{\TwrtH}{\tracking/\handoff}
+\newcommand*{\TGwrtH}{\target/\handoff}
+\newcommand*{\TGwrtT}{\target/\tracking}
+\newcommand*{\TGwrtI}{\target/\inertial}
+\newcommand*{\TwrtTG}{\tracking/\target}
+\newcommand*{\HwrtTG}{\handoff/\target}
+
+% complimentary filter
+\newcommand*{\g}[1][]{\modvect[#1]{g}}
+\newcommand*{\ghat}{\g[\hat]}
+\newcommand*{\vbar}[1][]{\modvect[#1]{\bar{v}}}
+\newcommand*{\vhat}[1][]{\modvect[#1]{\hat{v}}}
+\newcommand*{\deltavec}[1][]{\modvect[#1]{\delta\theta}}
+% state
+\newcommand*{\p}[1][]{\modvect[#1]{p}}
+\newcommand*{\x}[1][]{\modvect[#1]{x}}
+\newcommand*{\los}[1][]{\modvect[#1]{\ell}}
+\newcommand*{\losxy}[1][]{\p_{\TwrtH}^\hv}
+\newcommand*{\pxy}[1][]{\p_\text{xy}}
+\newcommand*{\velxy}[1][]{\vel_\text{xy}}
+% \newcommand*{\losxy}[1][]{\los[#1]_c}
+\newcommand*{\losvis}[1][]{\hat{\los[#1]}_{\text{vis}}^\hv}
+% \newcommand*{\xyrange}[1][]{\modvar[#1]{\rho}}
+\newcommand*{\range}[1][]{\modvar[#1]{\rho}}
+\newcommand*{\relpsifull}[1][]{{\modvar[#1]{\psi}_{\TwrtH}^\hv}}
+\newcommand*{\relpsi}[1][]{{\modvar[#1]{\psi}_\text{rel}}}
+\newcommand*{\relzfull}[1][]{\modvar[#1]{z}_{\TwrtH}^\hv}
+\newcommand*{\relz}[1][]{{\modvar[#1]{z}_\text{rel}}}
+\newcommand*{\bearing}[1][]{{\modvar[#1]{\vartheta}}}
+\newcommand*{\vel}[1][]{\modvect[#1]{v}}
+\newcommand*{\vtb}[1][]{\vel[#1]_{\TwrtI}^\tb}
+\newcommand*{\vhb}[1][]{\vel[#1]_{\HwrtI}^\hb}
+\newcommand*{\vthv}[1][]{\vel[#1]_{\TwrtI}^\hv}
+\newcommand*{\vttv}[1][]{\vel[#1]_{\TwrtI}^\tv}
+\newcommand*{\vhhv}[1][]{\vel[#1]_{\HwrtI}^\hv}
+\newcommand*{\vrelfull}[1][]{\vel[#1]_{\TwrtH}^\hv}
+\newcommand*{\vrel}[1][]{{\vel[#1]_\text{rel}}}
+\newcommand*{\angvel}[1][]{\modvect[#1]{\omega}}
+%% Target estimate
+\newcommand*{\ptg}[1][]{\p[#1]_{\TGwrtH}}
+\newcommand*{\ptghv}[1][]{\p[#1]_{\TGwrtH}^\hv}
+\newcommand*{\ptgi}[1][]{\p[#1]_{\TGwrtH}^i}
+% \newcommand*{\dpsi}[1][]{\modvar[#1]{\psi}_{\TGwrtH}^\hv}
+\newcommand*{\dpsi}[1][]{\modvar[#1]{\Delta\psi}}
+\newcommand*{\vtg}[1][]{\modvar[#1]{v}_\tg}
+\newcommand*{\veltg}[1][]{\vel[#1]_{\TGwrtH}}
+\newcommand*{\veltghv}[1][]{\vel[#1]_{\TGwrtH}^\hv}
+\newcommand*{\veltgvis}[1][]{\vel[#1]_{\text{vis}\hspace{0.2em}{\TGwrtH}}^\hv}
+\newcommand*{\velhtg}[1][]{\vel[#1]_{\HwrtTG}^\hv}
+\newcommand*{\phiff}[1][]{\modvar[#1]{\phi}_\text{ff}}
+\newcommand*{\alphablend}[1][]{\modvar[#1]{\alpha}}
+\newcommand*{\pimgvec}[1][]{\p[#1]^\prime}
+\newcommand*{\pimgvar}[1][]{\modvar[#1]{p}^\prime}
+\newcommand*{\vimgvec}[1][]{\vel[#1]^\prime}
+\newcommand*{\vimgvar}[1][]{\modvar[#1]{v}^\prime}
+\newcommand*{\m}[1][]{\modvect[#1]{m}}
+% Handoff Logic
+\newcommand*{\X}[1][]{\modvect[#1]{X}}
+\newcommand*{\Y}[1][]{\modvect[#1]{Y}}
+
+% unit vectors
+\newcommand*{\ii}[1][]{\modvect[#1]{i}}
+\newcommand*{\jj}[1][]{\modvect[#1]{j}}
+\newcommand*{\kk}[1][]{\modvect[#1]{k}}
+% \newcommand*{\g}[1][]{\modvect[#1]{g}}
+\newcommand*{\f}[1][]{\modvect[#1]{f}}
+\newcommand*{\n}[1][]{\modvect[#1]{n}}
+
+% quaternions
+\newcommand*{\quatvec}[2][]{\modvect[#1]{\bar{#2}}}
+\newcommand*{\quatscalar}[2][]{\modvar[#1]{#2}_0}
+
+\newcommand*{\pvec}[1][]{\quatvec[#1]{p}}
+\newcommand*{\pw}[1][]{\quatscalar[#1]{p}}
+
+\newcommand*{\q}[1][]{\modvect[#1]{q}}
+\newcommand*{\qvec}[1][]{\quatvec[#1]{q}}
+\newcommand*{\qw}[1][]{\quatscalar[#1]{q}}
+
+\newcommand*{\dq}[1][]{\delta\modvect[#1]{\q}}
+
+\newcommand*{\dalpha}[1][]{\delta{\alpha}}
+
+% vectors
+\newcommand*{\y}[1][]{\modvect[#1]{y}}
+\renewcommand*{\v}[1][]{\modvect[#1]{v}}
+\newcommand*{\dv}[1][]{\delta\modvect[#1]{v}}
+\renewcommand*{\u}[1][]{\modvect[#1]{u}}
+\renewcommand*{\g}[1][]{\modvect[#1]{g}}
+\newcommand*{\z}[1][]{\modvect[#1]{z}}
+\renewcommand*{\r}[1][]{\modvect[#1]{r}}
+\newcommand*{\dth}[1][]{\delta\modvect[#1]{\theta}}
+
+\newcommand*{\dtht}[1][]{\Delta\modvect[#1]{\theta}}
+
+% matrices
+\newcommand*{\A}{\mat{A}}
+\newcommand*{\B}{\mat{B}}
+\newcommand*{\C}{\mat{C}}
+\newcommand*{\I}{\mat{I}}
+\newcommand*{\R}{\mat{R}}
+\newcommand*{\Rt}{\R^\transpose}
+\renewcommand*{\P}[1][]{\modmat[#1]{P}}
+\newcommand*{\F}{\mat{F}}
+\newcommand*{\G}{\mat{G}}
+\newcommand*{\Q}{\mat{Q}}
+\renewcommand*{\H}{\mat{H}}
+\renewcommand*{\S}{\mat{S}}
+\newcommand*{\K}{\mat{K}}
+\newcommand*{\M}{\mat{M}}
+\newcommand*{\J}{\mat{J}}
+\newcommand*{\zero}{\mat{0}}
+\newcommand*{\zeros}[2]{\zero_{#1\By#2}}
+
+\newcommand*{\N}{\mat{N}}
+\newcommand*{\Np}{\mat{N}_{\vect{p}}}
+\newcommand*{\Nth}{\mat{N}_{\vect{\theta}}}
+
+% Misc
+\renewcommand{\t}{t}
+\newcommand{\up}{\string^}
+\newcommand{\down}{\string^}
+
+\newcommand*{\ay}[1][]{\prescript{a}{}{\y}}
+\newcommand*{\by}[1][]{\prescript{b}{}{\y}}
+\newcommand*{\cy}[1][]{\prescript{c}{}{\y}}
+
+
+
+% \newcommand*{\pnb}[1][]{{\modvect[#1]{p}_n^b}}
+% \newcommand*{\pnnb}[1][]{{\prescript{n}{}{\modvect[#1]{p}}_n^b}}
+% \newcommand*{\pbn}[1][]{{\modvect[#1]{p}_b^n}}
+% \newcommand*{\pbbn}[1][]{{\prescript{b}{}{\modvect[#1]{p}}_b^n}}
+% \newcommand*{\pnk}[1][]{{\modvect[#1]{p}_n^k}}
+% \newcommand*{\pnnk}[1][]{{\prescript{n}{}{\modvect[#1]{p}}_n^k}}
+% \newcommand*{\pkn}[1][]{{\modvect[#1]{p}_k^n}}
+% \newcommand*{\pkkn}[1][]{{\prescript{k}{}{\modvect[#1]{p}}_k^n}}
+% \newcommand*{\pbc}[1][]{{\modvect[#1]{p}_b^c}}
+% \newcommand*{\pkkc}[1][]{{\modvect[#1]{p}_k^{kc}}}
+% \newcommand*{\pkcc}[1][]{{\modvect[#1]{p}_{kc}^c}}
+% \newcommand*{\pckc}[1][]{{\modvect[#1]{p}_c^{kc}}}
+% \newcommand*{\pabc}[1][]{{\prescript{c}{}{\modvect[#1]{p}}_a^b}}
+% \newcommand*{\pab}[1][]{{\modvect[#1]{p}_a^b}}
+% \newcommand*{\pkc}[1][]{{\modvect[#1]{p}_k^{kc}}}
+
+% \newcommand*{\qnb}[1][]{{\modvect[#1]{q}_n^b}}
+% \newcommand*{\qbn}[1][]{{\modvect[#1]{q}_b^n}}
+% \newcommand*{\qnk}[1][]{{\modvect[#1]{q}_n^k}}
+% \newcommand*{\qkn}[1][]{{\modvect[#1]{q}_k^n}}
+% \newcommand*{\qbc}[1][]{{\modvect[#1]{q}_b^c}}
+% \newcommand*{\qkkc}[1][]{{\modvect[#1]{q}_k^{kc}}}
+% \newcommand*{\qkcc}[1][]{{\modvect[#1]{q}_{kc}^c}}
+% \newcommand*{\qckc}[1][]{{\modvect[#1]{q}_c^{kc}}}
+% \newcommand*{\qab}[1][]{{\modvect[#1]{q}_a^b}}
+% \newcommand*{\qba}[1][]{{\modvect[#1]{q}_b^a}}
+% \newcommand*{\qac}[1][]{{\modvect[#1]{q}_a^c}}
+% \newcommand*{\vb}[1][]{{\modvect[#1]{v}}}
+% \newcommand*{\dthnb}[1][]{{\dth[#1]_n^b}}
+% \newcommand*{\dthnk}[1][]{{\dth[#1]_n^k}}
+% \newcommand*{\dthkn}[1][]{{\dth[#1]_k^n}}
+% \newcommand*{\dthbn}[1][]{{\dth[#1]_b^n}}
+
+% \newcommand*{\accel}[1][]{\modvect[#1]{a}}
+% \newcommand*{\psimag}[1][]{\modvar[#1]{\psi}_{m}}
+% \newcommand*{\magdec}[1][]{\modvar[#1]{\Delta}_{m}}
+% \newcommand*{\magnet}[1][]{\modvect[#1]{m}}
+% \newcommand*{\gbias}[1][]{{\modvect[#1]{\beta}_{\angvel}}}
+% \newcommand*{\abias}[1][]{{\modvect[#1]{\beta}_{\accel}}}
+
+% \newcommand*{\dx}[1][]{\delta \x[#1]}
+% \newcommand*{\dpnb}[1][]{{\delta \pnb[#1]}}
+% \newcommand*{\dqnb}[1][]{{\delta \qnb[#1]}}
+% \newcommand*{\dvb}[1][]{{\delta \vb[#1]}}
+% \newcommand*{\dgbias}[1][]{{\delta \gbias[#1]}}
+% \newcommand*{\dabias}[1][]{{\delta \abias[#1]}}
+% \newcommand*{\dmu}[1][]{{\delta \modvar[#1]{\mu}}}
+% \newcommand*{\dpnk}[1][]{{\delta \pnk[#1]}}
+% \newcommand*{\dqnk}[1][]{{\delta \qnk[#1]}}
+% \newcommand*{\dpkn}[1][]{{\delta \pkn[#1]}}
+% \newcommand*{\dqkn}[1][]{{\delta \qkn[#1]}}
+
+% \newcommand*{\dpbn}[1][]{{\delta \pbn[#1]}}
+% \newcommand*{\dqbn}[1][]{{\delta \qbn[#1]}}
+
+% \newcommand*{\noise}[1][]{\modvect[#1]{\eta}}
+% \newcommand*{\noiseu}[1][]{\modvect[#1]{\upsilon}}
+
+% measurements
+\newcommand*{\h}[1][]{\modvect[#1]{h}}
+
+% Like smallmatrix but normalsized font
+\newenvironment{bigsmallmatrix}{\null\,\vcenter\bgroup
+\Let@\restore@math@cr\default@tag
+\baselineskip6\ex@ \lineskip1.5\ex@ \lineskiplimit\lineskip
+\ialign\bgroup\hfil$\m@th\displaystyle##$\hfil&&\thickspace\hfil
+$\m@th\displaystyle##$\hfil\crcr
+}{%
+\crcr\egroup\egroup\,%
+}
+
+\makeatletter
+\renewcommand*\env@matrix[1][\arraystretch]{%
+  \edef\arraystretch{#1}%
+  \hskip -\arraycolsep
+  \let\@ifnextchar\new@ifnextchar
+  \array{*\c@MaxMatrixCols c}}
+\makeatother
+
+\newcommand{\pmat}[2][1] {
+\begin{pmatrix}[#1]
+  #2
+\end{pmatrix}
+}
+
+
+%
+
+%
+% \usepackage{amsmath}
+% \usepackage{amssymb}
+% \usepackage{amsbsy}
+% \usepackage{amsfonts}
+% \usepackage{bm}
+%
+% \newcommand*{\skinny}[1]{{
+% \medmuskip=0mu\relax
+% \thickmuskip=0mu\relax
+% \small#1}}
+%
+% % my Commands
+% \newcommand*{\By}{\times}
+% \newcommand*{\Rot}[2]{\mathcal{R}_{#1}^{#2}}
+% \newcommand*{\Rotdot}[2]{\dot{\mathcal{R}}_{#1}^{#2}}
+% \newcommand*{\atantwo}{\text{atan2}}
+% \newcommand*{\degree}{\circ}
+% \newcommand*{\approaches}{\rightarrow}
+%
+% % \global\long\def\atan{\tan^{-1}}
+% \global\long\def\norm#1{\lVert#1\rVert}
+% % \global\long\def\sat#1#2#3{\text{sat}\left(#1,#2,#3\right)}
+% % \global\long\def\grad#1{\triangledown#1}
+% % \global\long\def\Vt{\mathbf{V_{t}}}
+% % \global\long\def\Vw{\mathbf{V_{w}}}
+% % \global\long\def\Vg{\mathbf{V_{g}}}
+% % \global\long\def\Va{\mathbf{V_{a}}}
+% % \global\long\def\el{\alpha_{el}}
+% % \global\long\def\eldot{\dot{\el}}
+% % \global\long\def\az{\alpha_{az}}
+% % \global\long\def\azdot{\dot{\az}}
+% % \global\long\def\x{\mathbf{x}}
+% % \global\long\def\xdot{\dot{\x}}
+% % \global\long\def\vxtb{v_{x_{t}}^{b}}
+% % \global\long\def\vxtw{v_{x_{t}}^{w}}
+% % \global\long\def\vytw{v_{y_{t}}^{w}}
+% % \global\long\def\vytb{v_{y_{t}}^{b}}
+% % \global\long\def\e{\mathbf{e}}
+% % \global\long\def\edot{\dot{\e}}
+% % \global\long\def\u{\mathbf{u}}
+%
+% % \renewcommand*{\sin}{\text{sin\:}}
+% % \renewcommand*{\cos}{\text{cos\:}}
+% \newcommand*{\asin}{\sin^{-1}}
+% \DeclareMathOperator{\sinc}{sinc}
+%
+% \newcommand*{\of}[1]{\ensuremath{(#1)}}
+% \newcommand*{\inverseof}[1]{\ensuremath{\of{#1}\inverse}}
+%
+% \newcommand*{\vect}[1]{\ensuremath{\mathbf{\mathrm{#1}}}}
+% \newcommand*{\mat}[1]{\ensuremath{\mathbf{\mathrm{#1}}}}
+%
+% \newcommand*{\modvar}[2][]{\ensuremath{#1{#2}}}
+% \newcommand*{\modvect}[2][]{\ensuremath{\modvar[#1]{\vect{#2}}}}
+% \newcommand*{\modmat}[2][]{\ensuremath{\modvar[#1]{\mat{#2}}}}
+%
+% \newcommand*{\at}[2]{\ensuremath{\left. {#1} \right\vert_{#2}}}
+%
+% \newcommand*{\half}{\ensuremath{\frac{1}{2}}}
+%
+% % modifiers
+% \newcommand*{\hatdot}[1]{\ensuremath{\dot{\hat{#1}}}}
+% \newcommand*{\inverse}{\ensuremath{{}^{-1}}}
+%
+% % operators
+% \newcommand*{\transpose}{\ensuremath{\mathsf{T}}}
+% \newcommand*{\skewmat}[1]{\left\lfloor#1\right\rfloor}
+% \newcommand*{\pard}[2]{\frac{\partial {#1}}{\partial {#2}}}
+% \newcommand*{\cross}{\times}
+\DeclareMathOperator{\matexp}{exp_M}
+%
+% % frame definitions
+% \newcommand*{\hv}{\text{hv1}}
+% \newcommand*{\hb}{\text{hb}}
+% \newcommand*{\tv}{\text{tv1}}
+% \newcommand*{\tb}{\text{tb}}
+% \newcommand*{\tg}{\text{tg}}
+% \newcommand*{\TwrtI}{\text{t}/i}
+% \newcommand*{\HwrtI}{\text{h}/i}
+% \newcommand*{\TwrtH}{\text{t}/\text{h}}
+% \newcommand*{\TGwrtH}{\text{tg}/\text{h}}
+% \newcommand*{\TGwrtI}{\text{tg}/i}
+%
+% % State variables
+% %% general state
+% \newcommand*{\x}[1][]{\modvect[#1]{x}}
+% \newcommand*{\xdot}[1][]{{\dot{\x[#1]}}}
+%
+% %% MEKF state
+\newcommand*{\dx}[1][]{\delta \x[#1]}
+\newcommand*{\bOmega}[1][]{\modvect[#1]{\Omega}}
+\newcommand*{\dgbias}[1][]{{\delta \gbias[#1]}}
+%
+%
+% %% PF state
+% \newcommand*{\los}[1][]{\modvect[#1]{\ell}}
+% \newcommand*{\losxy}[1][]{\los[#1]_\text{xy}}
+% % \newcommand*{\losxy}[1][]{\los[#1]_c}
+% \newcommand*{\losvis}[1][]{\hat{\los[#1]}_{\text{vis}}^\hv}
+% \newcommand*{\xyrange}[1][]{\modvar[#1]{\rho}}
+% \newcommand*{\range}[1][]{\modvar[#1]{R}}
+% \newcommand*{\relpsifull}[1][]{{\modvar[#1]{\psi}_{\TwrtH}^\hv}}
+% \newcommand*{\relpsi}[1][]{{\modvar[#1]{\psi}_\text{rel}}}
+% \newcommand*{\relzfull}[1][]{\modvar[#1]{z}_{\TwrtH}^\hv}
+% \newcommand*{\relz}[1][]{{\modvar[#1]{z}_\text{rel}}}
+% \newcommand*{\bearing}[1][]{{\modvar[#1]{\Theta}}}
+% \newcommand*{\vel}[1][]{\modvect[#1]{V}}
+% \newcommand*{\vtb}[1][]{\vel[#1]_{\TwrtI}^\tb}
+% \newcommand*{\vhb}[1][]{\vel[#1]_{\HwrtI}^\hb}
+% \newcommand*{\vthv}[1][]{\vel[#1]_{\TwrtI}^\hv}
+% \newcommand*{\vttv}[1][]{\vel[#1]_{\TwrtI}^\tv}
+% \newcommand*{\vhhv}[1][]{\vel[#1]_{\HwrtI}^\hv}
+% \newcommand*{\vrelfull}[1][]{\vel[#1]_{\TwrtH}^\hv}
+% \newcommand*{\vrel}[1][]{{\vel[#1]_\text{rel}}}
+% \newcommand*{\angvel}[1][]{\modvect[#1]{\omega}}
+%
+% %% Target estimate
+% \newcommand*{\ptg}[1][]{\p[#1]_{\TGwrtH}}
+% \newcommand*{\ptghv}[1][]{\p[#1]_{\TGwrtH}^\hv}
+% \newcommand*{\ptgi}[1][]{\p[#1]_{\TGwrtH}^i}
+% % \newcommand*{\dpsi}[1][]{\modvar[#1]{\psi}_{\TGwrtH}^\hv}
+% \newcommand*{\dpsi}[1][]{\modvar[#1]{\Delta\psi}}
+% \newcommand*{\vtg}[1][]{\modvar[#1]{v}_\tg}
+%
+% % unit vectors
+% \newcommand*{\ii}[1][]{\modvect[#1]{i}}
+% \newcommand*{\jj}[1][]{\modvect[#1]{j}}
+% \newcommand*{\kk}[1][]{\modvect[#1]{k}}
+% \newcommand*{\g}[1][]{\modvect[#1]{g}}
+% \newcommand*{\f}[1][]{\modvect[#1]{f}}
+% \newcommand*{\n}[1][]{\modvect[#1]{n}}
+% \newcommand*{\e}[1][]{\modvect[#1]{e}}
+%
+%
+% % quaternions
+% \newcommand*{\quatvec}[2][]{\modvect[#1]{\bar{#2}}}
+% \newcommand*{\quatscalar}[2][]{\modvar[#1]{#2}_0}
+%
+% \newcommand*{\p}[1][]{\modvect[#1]{p}}
+% \newcommand*{\pvec}[1][]{\quatvec[#1]{p}}
+% \newcommand*{\pw}[1][]{\quatscalar[#1]{p}}
+%
+% \newcommand*{\q}[1][]{\modvect[#1]{q}}
+% \newcommand*{\qvec}[1][]{\quatvec[#1]{q}}
+% \newcommand*{\qw}[1][]{\quatscalar[#1]{q}}
+%
+% \newcommand*{\dq}[1][]{\delta\modvect[#1]{\q}}
+%
+% \newcommand*{\dalpha}[1][]{\delta{\alpha}}
+%
+% % vectors
+% \newcommand*{\y}[1][]{\modvect[#1]{y}}
+% \renewcommand*{\v}[1][]{\modvect[#1]{v}}
+% \newcommand*{\dv}[1][]{\delta\modvect[#1]{v}}
+% \renewcommand*{\u}[1][]{\modvect[#1]{u}}
+% \renewcommand*{\g}[1][]{\modvect[#1]{g}}
+% \newcommand*{\z}[1][]{\modvect[#1]{z}}
+% \renewcommand*{\r}[1][]{\modvect[#1]{r}}
+% \newcommand*{\dth}[1][]{\delta\modvect[#1]{\theta}}
+%
+% \newcommand*{\dtht}[1][]{\Delta\modvect[#1]{\theta}}
+%
+% % matrices
+% \newcommand*{\I}{\mat{I}}
+% \newcommand*{\R}{\mat{R}}
+% \newcommand*{\Rt}{\R^\transpose}
+% \renewcommand*{\P}[1][]{\modmat[#1]{P}}
+% \newcommand*{\F}{\mat{F}}
+% \newcommand*{\G}{\mat{G}}
+% \newcommand*{\Q}{\mat{Q}}
+% \renewcommand*{\H}{\mat{H}}
+% \newcommand*{\K}{\mat{K}}
+% \newcommand*{\M}{\mat{M}}
+% \newcommand*{\J}{\mat{J}}
+%
+% \newcommand*{\N}{\mat{N}}
+% \newcommand*{\Np}{\mat{N}_{\vect{p}}}
+% \newcommand*{\Nth}{\mat{N}_{\vect{\theta}}}
+%
+% % Misc
+% \renewcommand{\t}{t}
+% \newcommand{\up}{\string^}
+% \newcommand{\down}{\string^}
+%
+\newcommand*{\accel}[1][]{\modvect[#1]{a}}
+\newcommand*{\psimag}[1][]{\modvar[#1]{\psi}_{m}}
+\newcommand*{\magdec}[1][]{\modvar[#1]{\Delta}_{m}}
+\newcommand*{\magnet}[1][]{\modvect[#1]{m}}
+\newcommand*{\gbias}[1][]{{\modvect[#1]{\beta}_{\angvel}}}
+\newcommand*{\abias}[1][]{{\modvect[#1]{\beta}_{\accel}}}
+%
+%
+\newcommand*{\noise}[1][]{\modvect[#1]{\eta}}
+\newcommand*{\noiseu}[1][]{\modvect[#1]{\upsilon}}
+%
+% % measurements
+% \newcommand*{\h}[1][]{\modvect[#1]{h}}
+% \newcommand*{\haccel}[1][]{\h[#1]_\text{acc}}
+% \newcommand*{\zaccel}[1][]{\z[#1]_\text{acc}}
+% \newcommand*{\raccel}[1][]{\r[#1]_\text{acc}}
+% \newcommand*{\Haccel}[1][]{\H_\text{acc}}
+%
+% % Like smallmatrix but normalsized font
+% \newenvironment{bigsmallmatrix}{\null\,\vcenter\bgroup
+% \Let@\restore@math@cr\default@tag
+% \baselineskip6\ex@ \lineskip1.5\ex@ \lineskiplimit\lineskip
+% \ialign\bgroup\hfil$\m@th\displaystyle##$\hfil&&\thickspace\hfil
+% $\m@th\displaystyle##$\hfil\crcr
+% }{%
+% \crcr\egroup\egroup\,%
+% }
+%
+% \newcommand{\pmat}[1] {
+% \begin{pmatrix}
+%   #1
+% \end{pmatrix}
+% }
